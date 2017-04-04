@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/subtle"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -25,6 +26,17 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func editHandler(w http.ResponseWriter, r *http.Request) {
+	username := os.Getenv("GTFSRT_EDIT_USER")
+	password := os.Getenv("GTFSRT_EDIT_PASS")
+
+	user, pass, ok := r.BasicAuth()
+
+	if !ok || subtle.ConstantTimeCompare([]byte(user), []byte(username)) != 1 || subtle.ConstantTimeCompare([]byte(pass), []byte(password)) != 1 {
+		w.Header().Set("WWW-Authenticate", `Basic realm="Manual GTFS-RT feed"`)
+		w.WriteHeader(401)
+		w.Write([]byte("Unauthorised.\n"))
+		return
+	}
 
 	switch r.Method {
 	case "GET":
@@ -73,7 +85,7 @@ func editHandler(w http.ResponseWriter, r *http.Request) {
 				log.Panic(err)
 			}
 		}
-
+		log.Print("FeedMessage updated")
 		http.Redirect(w, r, "/", 301)
 		return
 	}
