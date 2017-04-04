@@ -1,0 +1,54 @@
+{
+    "header": {
+        "gtfs_realtime_version": "1.0",
+        "incrementality": 0,
+        "timestamp": 1491240721
+    },
+    "entity": [{
+            "id": "1",
+            "trip_update": {
+                "trip": {
+                    "trip_id": "79657_4025",
+                    "schedule_relationship": 3
+                }
+            }
+        },
+        {
+            "id": "2",
+            "alert": {
+                "active_period": [{
+                    "start": 1491177600,
+                    "end": 1496448000
+                }],
+                "informed_entity": [{
+                    "trip": {
+                        "trip_id": "19_1026"
+                    }
+                }, {
+                    "trip": {
+                        "trip_id": "19_1137"
+                    }
+                }],
+                "effect": 6,
+                "url": {
+                    "translation": [{
+                        "language": "fi",
+                        "text": "http://www.kajaani.fi/fi/liikenneyhteydet"
+                    }]
+                },
+                "header_text": {
+                    "translation": [{
+                        "language": "fi",
+                        "text": "Paltamossa suora vaihtomahdollisuus Manamasaloon"
+                    }]
+                },
+                "description_text": {
+                    "translation": [{
+                        "language": "fi",
+                        "text": "Aikataulutiedoista ja reittiehdotuksista poiketen vuorojen välillä on Paltamossa mahdollisuus vaihtaa autoa vaihtamatta Manamasaloon"
+                    }]
+                }
+            }
+        }
+    ]
+}
