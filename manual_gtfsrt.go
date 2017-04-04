@@ -55,7 +55,7 @@ func editHandler(w http.ResponseWriter, r *http.Request) {
 			log.Panic(err)
 		}
 
-		fmt.Fprintf(w, "<html><body><form method=\"post\" action=\"/edit\"><textarea cols=\"200\" rows=\"50\" name=\"msg\">%s</textarea><br/><input type=\"submit\" name=\"s\" value=\"Aseta viesti\"/></form></body></html>", msgJSONFormatted.Bytes())
+		fmt.Fprintf(w, "<html><body><form method=\"post\" action=\"\"><textarea cols=\"200\" rows=\"50\" name=\"msg\">%s</textarea><br/><input type=\"submit\" name=\"s\" value=\"Aseta viesti\"/></form></body></html>", msgJSONFormatted.Bytes())
 
 		return
 	case "POST":
