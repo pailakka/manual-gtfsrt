@@ -80,6 +80,7 @@ func editHandler(w http.ResponseWriter, r *http.Request) {
 
 		if len(archiveFolder) > 0 {
 			err = ioutil.WriteFile(path.Join(archiveFolder, fmt.Sprintf("feedmessage_%s.json", time.Now().Format("20060102150405"))), currentFeedJSON, 0664)
+			err = ioutil.WriteFile(path.Join(archiveFolder, "feedmessage_latest.json"), currentFeedJSON, 0664)
 
 			if err != nil {
 				log.Panic(err)
@@ -105,17 +106,6 @@ func gtfsrtHandler(w http.ResponseWriter, r *http.Request) {
 func main() {
 	currentFeedMessage = &gtfsrtproto.FeedMessage{}
 
-	jsondata, err := ioutil.ReadFile("sample_feed.json")
-	if err != nil {
-		log.Panic(err)
-	}
-	currentFeedJSON = jsondata
-	err = json.Unmarshal(currentFeedJSON, &currentFeedMessage)
-
-	if err != nil {
-		log.Panic(err)
-	}
-
 	http.HandleFunc("/", indexHandler)
 	http.HandleFunc("/edit", editHandler)
 	http.HandleFunc("/gtfsrt", gtfsrtHandler)
@@ -135,7 +125,23 @@ func main() {
 			log.Print("Archive folder does not exists")
 
 		}
+
+		_, err := os.Stat(path.Join(archiveFolder, "feedmessage_latest.json"))
+		if !os.IsNotExist(err) {
+			jsondata, err := ioutil.ReadFile(path.Join(archiveFolder, "feedmessage_latest.json"))
+			if err != nil {
+				log.Panic(err)
+			}
+			currentFeedJSON = jsondata
+			err = json.Unmarshal(currentFeedJSON, &currentFeedMessage)
+
+			if err != nil {
+				log.Panic(err)
+			}
+
+		}
 	}
+
 	http.ListenAndServe(":"+port, nil)
 
 }
