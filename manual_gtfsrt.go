@@ -87,7 +87,7 @@ func editHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		log.Print("FeedMessage updated")
-		http.Redirect(w, r, "/", 301)
+		http.Redirect(w, r, "../", 301)
 		return
 	}
 
