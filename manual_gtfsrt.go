@@ -126,7 +126,7 @@ func main() {
 
 		}
 
-		_, err := os.Stat(path.Join(archiveFolder, "feedmessage_latest.json"))
+		_, err = os.Stat(path.Join(archiveFolder, "feedmessage_latest.json"))
 		if !os.IsNotExist(err) {
 			jsondata, err := ioutil.ReadFile(path.Join(archiveFolder, "feedmessage_latest.json"))
 			if err != nil {
