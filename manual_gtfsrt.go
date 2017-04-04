@@ -142,6 +142,7 @@ func main() {
 		}
 	}
 
+	log.Print("Manual GTFS-RT server started")
 	http.ListenAndServe(":"+port, nil)
 
 }
