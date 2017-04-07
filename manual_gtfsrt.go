@@ -93,9 +93,62 @@ func editHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func gtfsrtHandler(w http.ResponseWriter, r *http.Request) {
+func filterEntitiesByType(retainType string, entities []*gtfsrtproto.FeedEntity) (updateEntities []*gtfsrtproto.FeedEntity) {
+	for _, e := range entities {
+		retain := false
+		switch retainType {
+		case "alert":
+			if e.Alert != nil {
+				retain = true
+			}
+		case "update":
+			if e.TripUpdate != nil {
+				retain = true
+			}
+		case "vehicle":
+			if e.Vehicle != nil {
+				retain = true
+			}
+		}
 
-	pbbytes, err := proto.Marshal(currentFeedMessage)
+		if retain {
+			updateEntities = append(updateEntities, e)
+		}
+
+	}
+
+	return updateEntities
+}
+
+func gtfsrtAlertsHandler(w http.ResponseWriter, r *http.Request) {
+	feedmsg := currentFeedMessage
+	feedmsg.Entity = filterEntitiesByType("alert", feedmsg.Entity)
+
+	pbbytes, err := proto.Marshal(feedmsg)
+
+	if err != nil {
+		log.Panic(err)
+	}
+	w.Write(pbbytes)
+}
+
+func gtfsrtUpdatesHandler(w http.ResponseWriter, r *http.Request) {
+	feedmsg := currentFeedMessage
+	feedmsg.Entity = filterEntitiesByType("update", feedmsg.Entity)
+
+	pbbytes, err := proto.Marshal(feedmsg)
+
+	if err != nil {
+		log.Panic(err)
+	}
+	w.Write(pbbytes)
+}
+
+func gtfsrtVehiclesHandler(w http.ResponseWriter, r *http.Request) {
+	feedmsg := currentFeedMessage
+	feedmsg.Entity = filterEntitiesByType("vehicle", feedmsg.Entity)
+
+	pbbytes, err := proto.Marshal(feedmsg)
 
 	if err != nil {
 		log.Panic(err)
@@ -108,7 +161,9 @@ func main() {
 
 	http.HandleFunc("/", indexHandler)
 	http.HandleFunc("/edit", editHandler)
-	http.HandleFunc("/gtfsrt", gtfsrtHandler)
+	http.HandleFunc("/gtfsrt/alerts", gtfsrtAlertsHandler)
+	http.HandleFunc("/gtfsrt/updates", gtfsrtUpdatesHandler)
+	http.HandleFunc("/gtfsrt/vehicles", gtfsrtVehiclesHandler)
 
 	port := os.Getenv("PORT")
 	if len(port) == 0 {
