@@ -127,10 +127,10 @@ func filterEntitiesByType(retainType string, entities []*gtfsrtproto.FeedEntity)
 }
 
 func gtfsrtAlertsHandler(w http.ResponseWriter, r *http.Request) {
-	feedmsg := currentFeedMessage
+	feedmsg := *currentFeedMessage
 	feedmsg.Entity = filterEntitiesByType("alert", feedmsg.Entity)
 
-	pbbytes, err := proto.Marshal(feedmsg)
+	pbbytes, err := proto.Marshal(&feedmsg)
 
 	if err != nil {
 		log.Panic(err)
@@ -139,10 +139,10 @@ func gtfsrtAlertsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func gtfsrtUpdatesHandler(w http.ResponseWriter, r *http.Request) {
-	feedmsg := currentFeedMessage
+	feedmsg := *currentFeedMessage
 	feedmsg.Entity = filterEntitiesByType("update", feedmsg.Entity)
 
-	pbbytes, err := proto.Marshal(feedmsg)
+	pbbytes, err := proto.Marshal(&feedmsg)
 
 	if err != nil {
 		log.Panic(err)
@@ -151,10 +151,10 @@ func gtfsrtUpdatesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func gtfsrtVehiclesHandler(w http.ResponseWriter, r *http.Request) {
-	feedmsg := currentFeedMessage
+	feedmsg := *currentFeedMessage
 	feedmsg.Entity = filterEntitiesByType("vehicle", feedmsg.Entity)
 
-	pbbytes, err := proto.Marshal(feedmsg)
+	pbbytes, err := proto.Marshal(&feedmsg)
 
 	if err != nil {
 		log.Panic(err)
