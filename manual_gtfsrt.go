@@ -12,13 +12,14 @@ import (
 	"path"
 	"time"
 
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 
 	"./gtfsrtproto"
 )
 
 var currentFeedMessage *gtfsrtproto.FeedMessage
-var currentFeedJSON []byte
+var currentFeedJSON string
 var archiveFolder string
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
@@ -65,29 +66,34 @@ func editHandler(w http.ResponseWriter, r *http.Request) {
 			log.Panic(err)
 		}
 
-		msgJSON := []byte(r.PostFormValue("msg"))
+		msgJSON := r.PostFormValue("msg")
 
 		var fm gtfsrtproto.FeedMessage
 
-		err = json.Unmarshal(msgJSON, &fm)
+		err = jsonpb.UnmarshalString(msgJSON, &fm)
 
 		if err != nil {
 			log.Panic(err)
 		}
 
 		currentFeedJSON = msgJSON
+
 		currentFeedMessage = &fm
 
+		feedHead := currentFeedMessage.GetHeader()
+		nowUnix := uint64(time.Now().Unix())
+		feedHead.Timestamp = proto.Uint64(nowUnix)
+
 		if len(archiveFolder) > 0 {
-			err = ioutil.WriteFile(path.Join(archiveFolder, fmt.Sprintf("feedmessage_%s.json", time.Now().Format("20060102150405"))), currentFeedJSON, 0664)
-			err = ioutil.WriteFile(path.Join(archiveFolder, "feedmessage_latest.json"), currentFeedJSON, 0664)
+			err = ioutil.WriteFile(path.Join(archiveFolder, fmt.Sprintf("feedmessage_%s.json", time.Now().Format("20060102150405"))), []byte(currentFeedJSON), 0664)
+			err = ioutil.WriteFile(path.Join(archiveFolder, "feedmessage_latest.json"), []byte(currentFeedJSON), 0664)
 
 			if err != nil {
 				log.Panic(err)
 			}
 		}
 		log.Print("FeedMessage updated")
-		http.Redirect(w, r, "../", 301)
+		http.Redirect(w, r, r.URL.String(), 301)
 		return
 	}
 
@@ -187,9 +193,8 @@ func main() {
 			if err != nil {
 				log.Panic(err)
 			}
-			currentFeedJSON = jsondata
-			err = json.Unmarshal(currentFeedJSON, &currentFeedMessage)
-
+			currentFeedJSON = string(jsondata[:len(jsondata)])
+			err = jsonpb.UnmarshalString(currentFeedJSON, currentFeedMessage)
 			if err != nil {
 				log.Panic(err)
 			}
