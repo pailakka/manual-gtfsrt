@@ -67,7 +67,8 @@ func editHandler(w http.ResponseWriter, r *http.Request) {
 		err = jsonpb.UnmarshalString(msgJSON, &fm)
 
 		if err != nil {
-			log.Panic(err)
+			http.Error(w, err.Error(), 500)
+			return
 		}
 
 		currentFeedJSON = msgJSON
