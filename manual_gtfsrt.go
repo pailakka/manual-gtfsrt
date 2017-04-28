@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 
@@ -184,7 +185,7 @@ func gtfsrtVehiclesHandler(w http.ResponseWriter, r *http.Request) {
 
 func updateExternalFeed(ef *ExternalFeed) {
 	client := &http.Client{}
-	resp, err := client.Get(ef.URL.String())
+	resp, err := client.Get((*ef).URL.String())
 
 	if err != nil {
 		log.Print(err)
@@ -216,13 +217,18 @@ func main() {
 	http.HandleFunc("/gtfsrt/updates", gtfsrtUpdatesHandler)
 	http.HandleFunc("/gtfsrt/vehicles", gtfsrtVehiclesHandler)
 
+	spew.Dump(os.Getenv("MERGE_FEEDS"))
 	mergeFeedsRaw := strings.Split(os.Getenv("MERGE_FEEDS"), ";")
 
 	for _, mf := range mergeFeedsRaw {
+		if len(mf) == 0 {
+			continue
+		}
 		u, err := url.Parse(mf)
 		if err != nil {
 			log.Printf("Merge feed url skipped: %s", mf)
 		}
+		log.Printf("Merge feed url loaded: %s", u.String())
 
 		ef := ExternalFeed{URL: *u, Msg: gtfsrtproto.FeedMessage{}}
 		go func(f *ExternalFeed) {
@@ -232,8 +238,6 @@ func main() {
 				select {
 				case <-ticker.C:
 					go updateExternalFeed(f)
-
-					return
 				}
 			}
 		}(&ef)
