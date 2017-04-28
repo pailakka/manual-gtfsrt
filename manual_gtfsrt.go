@@ -8,8 +8,10 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/golang/protobuf/jsonpb"
@@ -18,12 +20,23 @@ import (
 	"./gtfsrtproto"
 )
 
+type ExternalFeed struct {
+	URL url.URL
+	Msg gtfsrtproto.FeedMessage
+}
+
 var currentFeedMessage *gtfsrtproto.FeedMessage
 var currentFeedJSON string
 var archiveFolder string
+var mergeFeeds []*ExternalFeed
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Nykyinen GTFS-RT lähde:\n%s\nNykyinen tuotettu GTFS-RT:\n%s", currentFeedJSON, proto.MarshalTextString(currentFeedMessage))
+}
+
+func mergedIndexHandler(w http.ResponseWriter, r *http.Request) {
+	feedmsg := getMergedFeedMessage()
+	fmt.Fprintf(w, "Nykyinen yhdistetty GTFS-RT:\n%s", proto.MarshalTextString(&feedmsg))
 }
 
 func editHandler(w http.ResponseWriter, r *http.Request) {
@@ -126,8 +139,16 @@ func filterEntitiesByType(retainType string, entities []*gtfsrtproto.FeedEntity)
 	return updateEntities
 }
 
-func gtfsrtAlertsHandler(w http.ResponseWriter, r *http.Request) {
+func getMergedFeedMessage() gtfsrtproto.FeedMessage {
 	feedmsg := *currentFeedMessage
+	for _, ef := range mergeFeeds {
+		proto.Merge(&feedmsg, &ef.Msg)
+	}
+
+	return feedmsg
+}
+func gtfsrtAlertsHandler(w http.ResponseWriter, r *http.Request) {
+	feedmsg := getMergedFeedMessage()
 	feedmsg.Entity = filterEntitiesByType("alert", feedmsg.Entity)
 
 	pbbytes, err := proto.Marshal(&feedmsg)
@@ -139,7 +160,7 @@ func gtfsrtAlertsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func gtfsrtUpdatesHandler(w http.ResponseWriter, r *http.Request) {
-	feedmsg := *currentFeedMessage
+	feedmsg := getMergedFeedMessage()
 	feedmsg.Entity = filterEntitiesByType("update", feedmsg.Entity)
 
 	pbbytes, err := proto.Marshal(&feedmsg)
@@ -151,7 +172,7 @@ func gtfsrtUpdatesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func gtfsrtVehiclesHandler(w http.ResponseWriter, r *http.Request) {
-	feedmsg := *currentFeedMessage
+	feedmsg := getMergedFeedMessage()
 	feedmsg.Entity = filterEntitiesByType("vehicle", feedmsg.Entity)
 
 	pbbytes, err := proto.Marshal(&feedmsg)
@@ -162,14 +183,63 @@ func gtfsrtVehiclesHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(pbbytes)
 }
 
+func updateExternalFeed(ef *ExternalFeed) {
+	client := &http.Client{}
+	resp, err := client.Get(ef.URL.String())
+
+	if err != nil {
+		log.Print(err)
+		return
+	}
+	defer resp.Body.Close()
+
+	data, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		log.Print(err)
+		return
+	}
+
+	p := gtfsrtproto.FeedMessage{}
+	proto.Unmarshal(data, &p)
+	(*ef).Msg = p
+
+	log.Printf("External feed updated: %s", (*ef).URL.String())
+}
+
 func main() {
 	currentFeedMessage = &gtfsrtproto.FeedMessage{}
 
 	http.HandleFunc("/", indexHandler)
+	http.HandleFunc("/merged", mergedIndexHandler)
 	http.HandleFunc("/edit", editHandler)
 	http.HandleFunc("/gtfsrt/alerts", gtfsrtAlertsHandler)
 	http.HandleFunc("/gtfsrt/updates", gtfsrtUpdatesHandler)
 	http.HandleFunc("/gtfsrt/vehicles", gtfsrtVehiclesHandler)
+
+	mergeFeedsRaw := strings.Split(os.Getenv("MERGE_FEEDS"), ";")
+
+	for _, mf := range mergeFeedsRaw {
+		u, err := url.Parse(mf)
+		if err != nil {
+			log.Printf("Merge feed url skipped: %s", mf)
+		}
+
+		ef := ExternalFeed{URL: *u, Msg: gtfsrtproto.FeedMessage{}}
+		go func(f *ExternalFeed) {
+			ticker := time.NewTicker(60 * time.Second)
+			go updateExternalFeed(f)
+			for {
+				select {
+				case <-ticker.C:
+					go updateExternalFeed(f)
+
+					return
+				}
+			}
+		}(&ef)
+		mergeFeeds = append(mergeFeeds, &ef)
+	}
 
 	port := os.Getenv("PORT")
 	if len(port) == 0 {
