@@ -53,25 +53,6 @@ func editHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch r.Method {
-	case "GET":
-		w.Header().Set("Content-Type", "text/html")
-		msgJSON, err := json.Marshal(currentFeedMessage)
-
-		if err != nil {
-			log.Panic(err)
-		}
-
-		var msgJSONFormatted bytes.Buffer
-
-		err = json.Indent(&msgJSONFormatted, msgJSON, "", "    ")
-
-		if err != nil {
-			log.Panic(err)
-		}
-
-		fmt.Fprintf(w, "<html><body><form method=\"post\" action=\"\"><textarea cols=\"200\" rows=\"50\" name=\"msg\">%s</textarea><br/><input type=\"submit\" name=\"s\" value=\"Aseta viesti\"/></form></body></html>", msgJSONFormatted.Bytes())
-
-		return
 	case "POST":
 		err := r.ParseForm()
 
@@ -106,9 +87,26 @@ func editHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		log.Print("FeedMessage updated")
-		http.Redirect(w, r, r.URL.String(), 301)
-		return
 	}
+
+	w.Header().Set("Content-Type", "text/html")
+	msgJSON, err := json.Marshal(currentFeedMessage)
+
+	if err != nil {
+		log.Panic(err)
+	}
+
+	var msgJSONFormatted bytes.Buffer
+
+	err = json.Indent(&msgJSONFormatted, msgJSON, "", "    ")
+
+	if err != nil {
+		log.Panic(err)
+	}
+
+	fmt.Fprintf(w, "<html><body><form method=\"post\" action=\"\"><textarea cols=\"200\" rows=\"50\" name=\"msg\">%s</textarea><br/><input type=\"submit\" name=\"s\" value=\"Aseta viesti\"/></form></body></html>", msgJSONFormatted.Bytes())
+
+	return
 
 }
 
